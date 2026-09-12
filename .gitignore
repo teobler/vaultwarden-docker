@@ -1,0 +1,22 @@
+# Runtime configuration and secrets. Keep .env.example tracked as a template.
+.env
+.env.*
+!.env.example
+
+# Vaultwarden data, local archives, backup logs, and rclone credentials.
+data/
+backups/
+logs/
+rclone/
+
+# TLS material and Cloudflare credential files, if added later.
+*.pem
+*.key
+*.crt
+*.json
+!compose*.json
+
+# Local development metadata.
+.idea/
+.DS_Store
+*.log
