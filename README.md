@@ -66,6 +66,19 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 
 1. Open `https://<VAULTWARDEN_DOMAIN>` after the tunnel reports healthy. Cloudflare provides the browser-trusted certificate; no local CA installation is necessary.
 
+## Create Accounts
+
+New registrations are disabled by default because the Vaultwarden hostname is reachable from the Internet through Cloudflare Tunnel.
+
+To create the first account or intentionally open a short registration window:
+
+1. Edit `.env` and change `SIGNUPS_ALLOWED=false` to `SIGNUPS_ALLOWED=true`.
+1. Apply the setting: `docker compose up -d`.
+1. Open `https://<VAULTWARDEN_DOMAIN>` and select **Create account**.
+1. After the required accounts exist, change `.env` back to `SIGNUPS_ALLOWED=false` and run `docker compose up -d` again.
+
+For subsequent users, keep registrations disabled and create invitations from Vaultwarden's `/admin` page or through a Vaultwarden organization. The administrator path should be protected as described in [Protect the Admin Page](#protect-the-admin-page).
+
 ## Protect the Admin Page
 
 Protect only `https://<VAULTWARDEN_DOMAIN>/admin` with interactive Cloudflare Access. Do not put the complete Vaultwarden hostname behind an interactive Access login until every Bitwarden client you use has been tested: desktop and mobile applications may not support Access's browser redirect login for API calls.
