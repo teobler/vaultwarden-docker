@@ -55,7 +55,7 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 
    Cloudflare creates the required CNAME record automatically. Do not create an A or AAAA record for the host or open an inbound port on the router.
 
-1. Create a Cloudflare Access application for the hostname and add a restrictive Allow policy for the intended identities. This is strongly recommended before using the server. Verify that your Bitwarden clients can complete your chosen Access authentication flow; use WARP/Access service-auth options where non-browser client support is required.
+1. Configure Cloudflare Access and MFA for the Vaultwarden administration page before using it. The detailed procedure is in [Protect the Admin Page](#protect-the-admin-page).
 
 1. Start the stack:
 
@@ -66,12 +66,78 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 
 1. Open `https://<VAULTWARDEN_DOMAIN>` after the tunnel reports healthy. Cloudflare provides the browser-trusted certificate; no local CA installation is necessary.
 
+## Protect the Admin Page
+
+Protect only `https://<VAULTWARDEN_DOMAIN>/admin` with interactive Cloudflare Access. Do not put the complete Vaultwarden hostname behind an interactive Access login until every Bitwarden client you use has been tested: desktop and mobile applications may not support Access's browser redirect login for API calls.
+
+Vaultwarden user accounts, Vaultwarden two-step login, and Cloudflare Access are separate controls. This procedure adds two controls to `/admin`: Cloudflare authentication with MFA, then Vaultwarden's `ADMIN_TOKEN`.
+
+### Enable an Access login method
+
+For a personal deployment, Cloudflare One-time PIN is the simplest login method. It sends a code to an email address you explicitly allow.
+
+1. In the Cloudflare dashboard, select **Zero Trust** > **Integrations** > **Identity providers**.
+1. In **Your identity providers**, select **Add new identity provider**.
+1. Select **One-time PIN** and save it.
+
+Alternatively, add Google, GitHub, Microsoft Entra ID, or another SSO identity provider in the same location. Enforce MFA in that provider if you intend to rely on provider-managed MFA.
+
+### Enable independent MFA
+
+The MFA choices in an Access application remain unavailable until you enable at least one organization-level independent MFA method.
+
+1. Go to **Zero Trust** > **Access controls** > **Access settings**.
+1. Under **Allow multi-factor authentication (MFA)**, enable one or more browser-compatible methods:
+   - **Authenticator application** for TOTP codes from 1Password, Authy, Google Authenticator, or Microsoft Authenticator.
+   - **Security key** for a WebAuthn hardware key, such as a YubiKey.
+   - **Biometrics** for Touch ID, Face ID, or Windows Hello.
+1. Set the authentication duration. Choose `1 hour` or **Require every login** for the admin page.
+1. Leave **Apply global MFA settings by default** disabled to avoid imposing MFA on any other Access application.
+1. Save.
+
+Do not select only PIV key or FIDO2 key. Those options apply to SSH infrastructure applications, not browser access to Vaultwarden.
+
+### Create the Admin Access Application
+
+1. Go to **Zero Trust** > **Access controls** > **Applications**.
+1. Select **Create new application** > **Self-hosted and private** > **Add public hostname**.
+1. Enter the following values:
+   - **Application name**: `Vaultwarden Admin`
+   - **Domain**: select `<VAULTWARDEN_DOMAIN>`
+   - **Path**: `/admin`
+   - **Session duration**: `1 hour`
+1. In **Access policies**, create an Allow policy named `Allow Vaultwarden administrators`.
+1. Add an **Include** rule with selector **Emails** and your exact administrator email address. Add every administrator explicitly; do not use **Everyone** or a broad email-domain rule unless all those users should administer Vaultwarden.
+1. Save the policy.
+1. Go to the application **Authentication** section and its **MFA** tab.
+1. Select **Custom MFA settings**, choose the MFA methods enabled above, set `1 hour` or **Require every login**, and save the application.
+
+Cloudflare Access is deny-by-default: an identity which does not match an Allow policy cannot reach `/admin`.
+
+### Enroll MFA Devices
+
+1. Open `https://<your-team-name>.cloudflareaccess.com`.
+1. Sign in using the email or identity provider allowed by the admin policy.
+1. Select **Account** > **MFA devices** > **Add an MFA device**.
+1. Enroll the authenticator application, security key, or biometric method selected in Access settings.
+1. Enroll a second recovery method where possible, such as a TOTP application plus a backup security key.
+
+The direct enrollment address is `https://<your-team-name>.cloudflareaccess.com/AddMfaDevice`.
+
+### Verify the Protection
+
+1. In a private browser window, open `https://<VAULTWARDEN_DOMAIN>/admin`.
+1. Confirm Cloudflare only sends a One-time PIN or permits SSO login for the explicitly allowed administrator identity.
+1. Confirm Cloudflare requests the configured MFA method.
+1. Confirm Vaultwarden then requests `ADMIN_TOKEN`.
+1. Open the normal Vaultwarden URL and test the browser vault, desktop client, and mobile client. Keep the normal hostname outside interactive Access if any client fails its normal API authentication.
+
 ## Operations
 
 ```sh
 # Confirm service health and view logs
 docker compose ps
-docker compose logs -f vaultwarden cloudflared backup
+docker compose logs -f vaultwarden cloudflared
 
 # Run each backup tier immediately
 docker compose exec backup-watch sh /scripts/backup-local.sh watch
