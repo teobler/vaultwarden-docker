@@ -51,7 +51,7 @@ services:
       - ./backups:/backup
       - ./logs:/logs
       - ./backup:/scripts:ro
-    command: sh -c "apk add --no-cache dcron sqlite tzdata && printf '%s sh /scripts/backup-local.sh scheduled >> /logs/backup_scheduled.log 2>&1\\n' \"$$BACKUP_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    command: sh -c "apk add --no-cache sqlite tzdata && printf '%s sh /scripts/backup-local.sh scheduled >> /logs/backup_scheduled.log 2>&1\\n' \"$$BACKUP_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
 
   backup-sync:
     image: rclone/rclone:latest
@@ -67,4 +67,4 @@ services:
       - ${RCLONE_CONFIG_HOST:-./rclone}:/config/rclone:ro
       - ./backup:/scripts:ro
     entrypoint: []
-    command: sh -c "apk add --no-cache dcron tzdata && printf '%s sh /scripts/backup-sync.sh >> /logs/backup_sync.log 2>&1\\n' \"$$BACKUP_SYNC_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    command: sh -c "apk add --no-cache tzdata && printf '%s sh /scripts/backup-sync.sh >> /logs/backup_sync.log 2>&1\\n' \"$$BACKUP_SYNC_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"

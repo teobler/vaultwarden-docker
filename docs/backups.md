@@ -8,7 +8,7 @@ The deployment follows the reference project's three-tier backup strategy.
 
 Each archive includes a SQLite online-backup copy of `db.sqlite3`, attachments, sends, icon cache, and RSA keys. The SQLite online backup API creates a consistent database snapshot while Vaultwarden is running. Because `rclone sync` makes its destination match the retained local directory, do not place unrelated files in `RCLONE_REMOTE`.
 
-`backup-watch` and `backup-scheduled` use Alpine, while `backup-sync` uses the official `rclone/rclone` image. Host-mounted scripts in `backup/` run directly, so no custom Dockerfile or locally maintained image is required.
+`backup-watch` and `backup-scheduled` use Alpine, while `backup-sync` uses the official `rclone/rclone` image. The scheduled services use Alpine's built-in BusyBox `crond`, which works on Docker Desktop without the `dcron` process-group permission issue. Host-mounted scripts in `backup/` run directly, so no custom Dockerfile or locally maintained image is required.
 
 ## Commands
 
