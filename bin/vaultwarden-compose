@@ -40,7 +40,7 @@ fi
 : "${ADMIN_TOKEN:?ADMIN_TOKEN must exist in Bitwarden or .env}"
 : "${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must exist in Bitwarden or .env}"
 case "$ADMIN_TOKEN" in
-    '\$argon2id\$'*) ;;
+    '$argon2id$'*) ;;
     *)
         printf 'ADMIN_TOKEN must be an Argon2id PHC string. Run: docker run --rm -it vaultwarden/server:latest /vaultwarden hash\n' >&2
         exit 64
