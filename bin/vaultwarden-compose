@@ -1,0 +1,39 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+fallback="$root/.env"
+item_name=${BITWARDEN_ITEM_NAME:-Vaultwarden Deployment}
+
+load_fallback() {
+    [ -f "$fallback" ] || return 0
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            ADMIN_TOKEN=*) ADMIN_TOKEN=${line#ADMIN_TOKEN=} ;;
+            CLOUDFLARE_TUNNEL_TOKEN=*) CLOUDFLARE_TUNNEL_TOKEN=${line#CLOUDFLARE_TUNNEL_TOKEN=} ;;
+        esac
+    done < "$fallback"
+}
+
+load_fallback
+
+if command -v bw >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -n "${BW_SESSION:-}" ]; then
+    if secrets=$(bw get item "$item_name" 2>/dev/null); then
+        for field in ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN; do
+            if value=$(printf '%s' "$secrets" | jq -er --arg field "$field" \
+                '.fields[]? | select(.name == $field and .value != null) | .value' | head -n 1); then
+                export "$field=$value"
+            fi
+        done
+    else
+        printf 'Warning: could not read Bitwarden item "%s"; using .env values.\n' "$item_name" >&2
+    fi
+else
+    printf 'Warning: bw, jq, or BW_SESSION is unavailable; using .env values.\n' >&2
+fi
+
+: "${ADMIN_TOKEN:?ADMIN_TOKEN must exist in Bitwarden or .env}"
+: "${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must exist in Bitwarden or .env}"
+export ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN
+
+exec docker compose --env-file "$fallback" "$@"

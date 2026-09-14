@@ -31,7 +31,7 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
    chmod 600 .env
    ```
 
-   Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. Put the generated value in `ADMIN_TOKEN`. Set `RCLONE_REMOTE` to a full destination such as `crypt:vaultwarden-backups`.
+   Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. Put the generated value in `ADMIN_TOKEN`. Set `RCLONE_REMOTE` to a full destination such as `crypt:vaultwarden-backups`. See [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md) to source deployment secrets from Bitwarden CLI while retaining `.env` for recovery.
 
 1. Configure rclone on the Docker host, then make its configuration available to the container. The default expects `./rclone/rclone.conf`:
 
@@ -58,8 +58,8 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 1. Start the stack:
 
    ```sh
-   docker compose up -d
-   docker compose logs -f
+   ./bin/vaultwarden-compose up -d
+   ./bin/vaultwarden-compose logs -f
    ```
 
 1. Open `https://<VAULTWARDEN_DOMAIN>` after the tunnel reports healthy. Cloudflare provides the browser-trusted certificate; no local CA installation is necessary.
@@ -68,5 +68,6 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 
 - [Account provisioning](docs/accounts.md)
 - [Cloudflare Access and MFA](docs/cloudflare-access.md)
+- [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md)
 - [Backup operations](docs/backups.md)
 - [Recovery and security](docs/recovery.md)
