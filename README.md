@@ -15,6 +15,8 @@ Vaultwarden data -- watch and weekly local archives -- periodic rclone sync -- e
 
 Vaultwarden has no host port mapping. Only the `cloudflared` container can reach it through Docker's internal network.
 
+The tunnel connector uses HTTP/2 instead of QUIC. HTTP/2 uses outbound TCP 443 and is more reliable than UDP-based QUIC on networks that block or interrupt UDP tunnel traffic.
+
 ## Prerequisites
 
 - Docker Engine with Docker Compose v2.
