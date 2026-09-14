@@ -2,7 +2,7 @@
 
 Protect only `https://<VAULTWARDEN_DOMAIN>/admin` with interactive Cloudflare Access. Do not put the complete Vaultwarden hostname behind an interactive Access login until every Bitwarden client you use has been tested: desktop and mobile applications may not support Access's browser redirect login for API calls.
 
-Cloudflare Access and Vaultwarden's `ADMIN_TOKEN` are independent protections.
+Cloudflare Access and Vaultwarden's `ADMIN_TOKEN` are independent protections. Configure `ADMIN_TOKEN` as an Argon2id PHC hash, generated with `docker run --rm -it vaultwarden/server:latest /vaultwarden hash`; retain the plaintext password only in your password manager.
 
 ## Configure the Login Method
 

@@ -23,15 +23,15 @@ Vaultwarden has no host port mapping. Only the `cloudflared` container can reach
 
 ## Set Up
 
-1. Create the local configuration and generate an admin secret:
+1. Create the local configuration and generate an Argon2id hash for the admin password:
 
    ```sh
    cp .env.example .env
-   openssl rand -base64 48
+   docker run --rm -it vaultwarden/server:latest /vaultwarden hash
    chmod 600 .env
    ```
 
-   Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. Put the generated value in `ADMIN_TOKEN`. Set `RCLONE_REMOTE` to a full destination such as `crypt:vaultwarden-backups`. See [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md) to source deployment secrets from Bitwarden CLI while retaining `.env` for recovery.
+   Enter the plaintext admin password only when prompted. Put the resulting `$argon2id$...` PHC string, not the plaintext password, in `ADMIN_TOKEN`. Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. Set `RCLONE_REMOTE` to a full destination such as `crypt:vaultwarden-backups`. See [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md) to source deployment secrets from Bitwarden CLI while retaining `.env` for recovery.
 
 1. Configure rclone on the Docker host, then make its configuration available to the container. The default expects `./rclone/rclone.conf`:
 

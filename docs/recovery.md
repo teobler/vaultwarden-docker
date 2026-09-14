@@ -14,5 +14,5 @@ Test restoration periodically. Backups are only useful when their rclone remote 
 
 - Keep `.env`, `rclone/rclone.conf`, `data/`, `backups/`, and `logs/` private. They are excluded from Git.
 - Keep sign-ups disabled except during a deliberate account provisioning window.
-- `ADMIN_TOKEN` protects `/admin`; use a unique, high-entropy value.
+- `ADMIN_TOKEN` protects `/admin`; store only its Argon2id PHC hash in `.env` and Bitwarden. Generate it using `docker run --rm -it vaultwarden/server:latest /vaultwarden hash` and keep the plaintext password only in your password manager.
 - A Tunnel prevents direct origin exposure, but the hostname is still internet reachable. Protect `/admin` with Cloudflare Access and MFA, maintain host updates, and test backups.

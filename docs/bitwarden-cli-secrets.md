@@ -20,7 +20,7 @@ The session is temporary and is invalidated by `bw lock`, `bw logout`, or CLI se
 
 1. In Bitwarden, create a **Secure Note** named `Vaultwarden Deployment`.
 1. Add custom hidden fields with these exact names:
-   - `ADMIN_TOKEN`: the long random value protecting Vaultwarden `/admin`.
+   - `ADMIN_TOKEN`: the Argon2id PHC hash protecting Vaultwarden `/admin`, not its plaintext password. Generate it with `docker run --rm -it vaultwarden/server:latest /vaultwarden hash`, enter the plaintext password only at the prompt, and save the returned `$argon2id$...` string.
    - `CLOUDFLARE_TUNNEL_TOKEN`: the token from Cloudflare Zero Trust for this tunnel.
 1. Save the item and run `bw sync`.
 
@@ -50,4 +50,4 @@ Use the regular Docker Compose command if Bitwarden CLI is unavailable or cannot
 docker compose up -d
 ```
 
-This command gets every value from `.env`. Protect it with `chmod 600 .env`, keep it out of Git, and update its two secrets whenever the corresponding Bitwarden item changes. Test this recovery path periodically.
+This command gets every value from `.env`. Protect it with `chmod 600 .env`, keep it out of Git, and update its two secrets whenever the corresponding Bitwarden item changes. `ADMIN_TOKEN` in `.env` must be the exact Argon2id PHC hash stored in Bitwarden, not the plaintext password. Test this recovery path periodically.

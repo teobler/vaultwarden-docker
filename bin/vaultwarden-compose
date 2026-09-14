@@ -9,7 +9,12 @@ load_fallback() {
     [ -f "$fallback" ] || return 0
     while IFS= read -r line || [ -n "$line" ]; do
         case "$line" in
-            ADMIN_TOKEN=*) ADMIN_TOKEN=${line#ADMIN_TOKEN=} ;;
+            ADMIN_TOKEN=*)
+                ADMIN_TOKEN=${line#ADMIN_TOKEN=}
+                case "$ADMIN_TOKEN" in
+                    \'*\') ADMIN_TOKEN=${ADMIN_TOKEN#\'}; ADMIN_TOKEN=${ADMIN_TOKEN%\'} ;;
+                esac
+                ;;
             CLOUDFLARE_TUNNEL_TOKEN=*) CLOUDFLARE_TUNNEL_TOKEN=${line#CLOUDFLARE_TUNNEL_TOKEN=} ;;
         esac
     done < "$fallback"
@@ -34,6 +39,13 @@ fi
 
 : "${ADMIN_TOKEN:?ADMIN_TOKEN must exist in Bitwarden or .env}"
 : "${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must exist in Bitwarden or .env}"
+case "$ADMIN_TOKEN" in
+    '\$argon2id\$'*) ;;
+    *)
+        printf 'ADMIN_TOKEN must be an Argon2id PHC string. Run: docker run --rm -it vaultwarden/server:latest /vaultwarden hash\n' >&2
+        exit 64
+        ;;
+esac
 export ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN
 
 exec docker compose --env-file "$fallback" "$@"
