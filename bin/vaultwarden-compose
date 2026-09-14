@@ -21,6 +21,7 @@ load_fallback() {
 }
 
 load_fallback
+used_bitwarden=false
 
 if command -v bw >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -n "${BW_SESSION:-}" ]; then
     if secrets=$(bw get item "$item_name" 2>/dev/null); then
@@ -30,6 +31,7 @@ if command -v bw >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -n "${BW_
                 export "$field=$value"
             fi
         done
+        used_bitwarden=true
     else
         printf 'Warning: could not read Bitwarden item "%s"; using .env values.\n' "$item_name" >&2
     fi
@@ -48,4 +50,25 @@ case "$ADMIN_TOKEN" in
 esac
 export ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN
 
-exec docker compose --env-file "$fallback" "$@"
+if docker compose --env-file "$fallback" "$@"; then
+    status=0
+else
+    status=$?
+fi
+
+case "${1:-}" in
+    up|start) starts_stack=true ;;
+    *) starts_stack=false ;;
+esac
+
+if [ "$used_bitwarden" = true ] && [ "$starts_stack" = true ] && [ "$status" -eq 0 ]; then
+    if bw lock; then
+        printf 'Bitwarden vault locked. Run `unset BW_SESSION` to remove the session key from this shell.\n' >&2
+    else
+        printf 'Warning: stack started, but Bitwarden could not lock. Run: bw lock && unset BW_SESSION\n' >&2
+    fi
+elif [ "$used_bitwarden" = true ] && [ "$starts_stack" = true ]; then
+    printf 'Tip: stack start failed; lock Bitwarden when finished: bw lock && unset BW_SESSION\n' >&2
+fi
+
+exit "$status"
