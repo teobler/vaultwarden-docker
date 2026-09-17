@@ -42,6 +42,8 @@ Replace `docker compose` with `./bin/vaultwarden-compose` for commands that star
 
 Docker Compose loads non-secret settings from `.env`. The launcher separately reads only the two fallback secret values, without interpreting the file as shell code, so standard Compose values such as unquoted cron schedules remain compatible. When `bw`, `jq`, and an unlocked `BW_SESSION` are present, Bitwarden values override the two fallback values for that command only.
 
+The launcher enforces the two deploy secrets (and the Argon2id format of `ADMIN_TOKEN`) only when the command may create or recreate the `vaultwarden` or `cloudflared` containers: a bare `up`/`start`/`run`, or one that names either service. Commands that only manage the backup containers, such as `./bin/vaultwarden-compose up -d --force-recreate backup-sync`, run without any Bitwarden session; pass them an unlocked session anyway if you want the launcher to lock it afterwards.
+
 After a successful `up` or `start`, the launcher automatically runs `bw lock`. A child process cannot remove `BW_SESSION` from your current shell, so run `unset BW_SESSION` after the command. If `up` or `start` fails, the launcher prints the explicit `bw lock && unset BW_SESSION` cleanup command instead.
 
 ## Break-Glass Recovery

@@ -20,10 +20,12 @@ load_fallback() {
     done < "$fallback"
 }
 
-load_fallback
 used_bitwarden=false
 
-if command -v bw >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -n "${BW_SESSION:-}" ]; then
+load_bitwarden() {
+    command -v bw >/dev/null 2>&1 || return 0
+    command -v jq >/dev/null 2>&1 || return 0
+    [ -n "${BW_SESSION:-}" ] || return 0
     if secrets=$(bw get item "$item_name" 2>/dev/null); then
         for field in ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN; do
             if value=$(printf '%s' "$secrets" | jq -er --arg field "$field" \
@@ -35,20 +37,47 @@ if command -v bw >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 && [ -n "${BW_
     else
         printf 'Warning: could not read Bitwarden item "%s"; using .env values.\n' "$item_name" >&2
     fi
-else
-    printf 'Warning: bw, jq, or BW_SESSION is unavailable; using .env values.\n' >&2
-fi
+}
 
-: "${ADMIN_TOKEN:?ADMIN_TOKEN must exist in Bitwarden or .env}"
-: "${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must exist in Bitwarden or .env}"
-case "$ADMIN_TOKEN" in
-    '$argon2id$'*) ;;
-    *)
-        printf 'ADMIN_TOKEN must be an Argon2id PHC string. Run: docker run --rm -it vaultwarden/server:latest /vaultwarden hash\n' >&2
-        exit 64
-        ;;
-esac
-export ADMIN_TOKEN CLOUDFLARE_TUNNEL_TOKEN
+# Deploy secrets only matter when the command may (re)create the vaultwarden or
+# cloudflared containers; operating on backup containers needs neither. With no
+# service names the command targets the whole stack, so require them.
+needs_deploy_secrets() {
+    case "${1:-}" in
+        up|start|run) ;;
+        *) return 1 ;;
+    esac
+    shift
+    saw_service=false
+    for argument in "$@"; do
+        case "$argument" in
+            -*|*=*) continue ;;
+        esac
+        saw_service=true
+        case "$argument" in
+            vaultwarden|cloudflared) return 0 ;;
+        esac
+    done
+    [ "$saw_service" = false ]
+}
+
+load_fallback
+load_bitwarden
+
+if needs_deploy_secrets "$@"; then
+    : "${ADMIN_TOKEN:?ADMIN_TOKEN must exist in Bitwarden or .env}"
+    : "${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must exist in Bitwarden or .env}"
+    case "$ADMIN_TOKEN" in
+        '$argon2id$'*) ;;
+        *)
+            printf 'ADMIN_TOKEN must be an Argon2id PHC string. Run: docker run --rm -it vaultwarden/server:latest /vaultwarden hash\n' >&2
+            exit 64
+            ;;
+    esac
+fi
+# Export even when empty so compose interpolation does not warn.
+export ADMIN_TOKEN="${ADMIN_TOKEN:-}"
+export CLOUDFLARE_TUNNEL_TOKEN="${CLOUDFLARE_TUNNEL_TOKEN:-}"
 
 if docker compose --env-file "$fallback" "$@"; then
     status=0
@@ -65,7 +94,7 @@ if [ "$used_bitwarden" = true ] && [ "$starts_stack" = true ] && [ "$status" -eq
     if bw lock; then
         printf 'Bitwarden vault locked. Run `unset BW_SESSION` to remove the session key from this shell.\n' >&2
     else
-        printf 'Warning: stack started, but Bitwarden could not lock. Run: bw lock && unset BW_SESSION\n' >&2
+        printf 'Warning: stack started, but Bitwarden could not lock. Run `bw lock && unset BW_SESSION\n' >&2
     fi
 elif [ "$used_bitwarden" = true ] && [ "$starts_stack" = true ]; then
     printf 'Tip: stack start failed; lock Bitwarden when finished: bw lock && unset BW_SESSION\n' >&2
