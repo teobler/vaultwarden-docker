@@ -44,7 +44,7 @@ The tunnel connector uses HTTP/2 instead of QUIC. HTTP/2 uses outbound TCP 443 a
    chmod 600 rclone/rclone.conf
    ```
 
-   Alternatively, set `RCLONE_CONFIG_HOST` in `.env` to the absolute directory which contains `rclone.conf`.
+   Alternatively, set `RCLONE_CONFIG_HOST` in `.env` to the absolute directory which contains `rclone.conf` — the directory, not the file itself. Until `RCLONE_REMOTE` is filled in, the `backup-sync` container skips syncing and reports unhealthy.
 
 1. In Cloudflare Zero Trust, create a **remotely-managed** tunnel and copy its token to `CLOUDFLARE_TUNNEL_TOKEN`.
 

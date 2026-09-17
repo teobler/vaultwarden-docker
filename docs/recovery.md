@@ -3,9 +3,10 @@
 ## Restore a Backup
 
 1. Stop Vaultwarden: `docker compose stop vaultwarden`.
-1. Download the selected archive: `rclone copy <remote>/<watch_or_scheduled>_vaultwarden_<timestamp>.tar.gz ./restore`.
-1. Preserve the current `data/` directory before replacing it.
-1. Extract the archive into `data/`: `tar -C data -xzf restore/vaultwarden-<timestamp>.tar.gz`.
+1. Download the selected archive: `rclone copy <remote>/<kind>_vaultwarden_<timestamp>.tar.gz ./restore`, where `<kind>` is `watch` or `scheduled`. If the archive is missing remotely, look in `<remote>/previous/` — archives removed by local retention are moved there.
+1. Preserve the current `data/` directory, then delete `data/db.sqlite3-wal` and `data/db.sqlite3-shm` so a stale WAL from the old database cannot corrupt the restored one.
+1. Extract the archive into `data/`: `tar -C data -xzf restore/<kind>_vaultwarden_<timestamp>.tar.gz`.
+1. Verify the database: `sqlite3 data/db.sqlite3 "PRAGMA integrity_check;"` and expect `ok`.
 1. Start Vaultwarden: `docker compose start vaultwarden`.
 
 Test restoration periodically. Backups are only useful when their rclone remote and archive contents can be read.

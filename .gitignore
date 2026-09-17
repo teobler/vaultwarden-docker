@@ -19,5 +19,6 @@ rclone/
 
 # Local development metadata.
 .idea/
+.zcode/
 .DS_Store
 *.log

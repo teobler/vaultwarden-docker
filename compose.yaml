@@ -25,6 +25,7 @@ services:
     environment:
       BACKUP_WATCH_RETENTION: ${BACKUP_WATCH_RETENTION:-15}
       BACKUP_WATCH_DEBOUNCE: ${BACKUP_WATCH_DEBOUNCE:-300}
+      BACKUP_WATCH_MIN_INTERVAL: ${BACKUP_WATCH_MIN_INTERVAL:-3600}
       DATA_DIR: /data
       BACKUP_DIR: /backup
       BACKUP_LOG: /logs/backup_watch.log
@@ -34,6 +35,11 @@ services:
       - ./logs:/logs
       - ./backup:/scripts:ro
     command: sh -c "apk add --no-cache inotify-tools sqlite tzdata && sh /scripts/backup-watch.sh"
+    healthcheck:
+      test: ["CMD", "pgrep", "inotifywait"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
 
   backup-scheduled:
     image: alpine:3.22
@@ -41,6 +47,7 @@ services:
     environment:
       BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * 0}
       BACKUP_SCHEDULED_RETENTION: ${BACKUP_SCHEDULED_RETENTION:-5}
+      BACKUP_SCHEDULED_HEALTHCHECK_DAYS: ${BACKUP_SCHEDULED_HEALTHCHECK_DAYS:-8}
       DATA_DIR: /data
       BACKUP_DIR: /backup
       BACKUP_LOG: /logs/backup_scheduled.log
@@ -49,7 +56,12 @@ services:
       - ./backups:/backup
       - ./logs:/logs
       - ./backup:/scripts:ro
-    command: sh -c "apk add --no-cache sqlite tzdata && printf '%s sh /scripts/backup-local.sh scheduled >> /logs/backup_scheduled.log 2>&1\\n' \"$$BACKUP_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    command: sh -c "apk add --no-cache sqlite tzdata && sh /scripts/backup-local.sh scheduled; printf '%s sh /scripts/backup-local.sh scheduled >/dev/null 2>> /logs/backup_scheduled.log\\n' \"$$BACKUP_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "[ $$(($$(date +%s) - $$(stat -c %Y /backup/.last-scheduled-success 2>/dev/null || echo 0))) -lt $$(( $${BACKUP_SCHEDULED_HEALTHCHECK_DAYS:-8} * 86400 )) ]"]
+      interval: 5m
+      timeout: 5s
+      retries: 3
 
   backup-sync:
     image: rclone/rclone:latest
@@ -57,6 +69,7 @@ services:
     environment:
       BACKUP_SYNC_SCHEDULE: ${BACKUP_SYNC_SCHEDULE:-*/10 * * * *}
       RCLONE_REMOTE: ${RCLONE_REMOTE}
+      BACKUP_SYNC_HEALTHCHECK_MINUTES: ${BACKUP_SYNC_HEALTHCHECK_MINUTES:-30}
       DATA_DIR: /backup
       BACKUP_LOG: /logs/backup_sync.log
     volumes:
@@ -65,4 +78,9 @@ services:
       - ${RCLONE_CONFIG_HOST:-./rclone}:/config/rclone:ro
       - ./backup:/scripts:ro
     entrypoint: []
-    command: sh -c "apk add --no-cache tzdata && printf '%s sh /scripts/backup-sync.sh >> /logs/backup_sync.log 2>&1\\n' \"$$BACKUP_SYNC_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    command: sh -c "apk add --no-cache tzdata && sh /scripts/backup-sync.sh; printf '%s sh /scripts/backup-sync.sh >/dev/null 2>> /logs/backup_sync.log\\n' \"$$BACKUP_SYNC_SCHEDULE\" > /etc/crontabs/root && crond -f -l 2"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "[ $$(($$(date +%s) - $$(stat -c %Y /logs/.last-sync-success 2>/dev/null || echo 0))) -lt $$(( $${BACKUP_SYNC_HEALTHCHECK_MINUTES:-30} * 60 )) ]"]
+      interval: 5m
+      timeout: 5s
+      retries: 3

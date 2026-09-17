@@ -35,6 +35,9 @@ for item in attachments sends icon_cache rsa_key.pem rsa_key.pub; do
 done
 tar -C "$stage" -czf "$temporary" .
 mv "$temporary" "$archive"
+# Dot-file marker consumed by the compose healthcheck; retention only globs
+# "${kind}_vaultwarden_*.tar.gz", so this survives pruning.
+touch "$BACKUP_DIR/.last-$kind-success"
 log "Created $archive"
 
 cd "$BACKUP_DIR"
