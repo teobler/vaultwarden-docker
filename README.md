@@ -33,18 +33,19 @@ The tunnel connector uses HTTP/2 instead of QUIC. HTTP/2 uses outbound TCP 443 a
    chmod 600 .env
    ```
 
-   Enter the plaintext admin password only when prompted. Put the resulting `$argon2id$...` PHC string, not the plaintext password, in `ADMIN_TOKEN`. Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. Set `RCLONE_REMOTE` to a full destination such as `crypt:vaultwarden-backups`. See [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md) to source deployment secrets from Bitwarden CLI while retaining `.env` for recovery.
+   Enter the plaintext admin password only when prompted. Put the resulting `$argon2id$...` PHC string, not the plaintext password, in `ADMIN_TOKEN`. Each variable is documented directly in [`.env.example`](.env.example), including its origin and safe defaults. See [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md) to source deployment secrets from Bitwarden CLI while retaining `.env` for recovery.
 
-1. Configure rclone on the Docker host, then make its configuration available to the container. The default expects `./rclone/rclone.conf`:
+1. Configure offsite backup: two rclone remotes (`r2` + `crypt`) and the `.env` wiring are covered step by step, with the errors each misconfiguration produces, in [Offsite R2 backup setup](docs/offsite-r2.md). When the crypt remote points at the bucket (`remote = r2:vaultwarden-backups`), set `RCLONE_REMOTE=crypt:` — appending a path nests every archive one directory deeper. Until `RCLONE_REMOTE` is filled in, the `backup-sync` container skips syncing and reports unhealthy.
+
+1. Make the rclone configuration available to the container. The default expects `./rclone/rclone.conf`:
 
    ```sh
    mkdir -p rclone
-   rclone config
    cp ~/.config/rclone/rclone.conf rclone/rclone.conf
    chmod 600 rclone/rclone.conf
    ```
 
-   Alternatively, set `RCLONE_CONFIG_HOST` in `.env` to the absolute directory which contains `rclone.conf` — the directory, not the file itself. Until `RCLONE_REMOTE` is filled in, the `backup-sync` container skips syncing and reports unhealthy.
+   Alternatively, set `RCLONE_CONFIG_HOST` in `.env` to the absolute directory which contains `rclone.conf` — the directory, not the file itself.
 
 1. In Cloudflare Zero Trust, create a **remotely-managed** tunnel and copy its token to `CLOUDFLARE_TUNNEL_TOKEN`.
 
@@ -72,4 +73,5 @@ The tunnel connector uses HTTP/2 instead of QUIC. HTTP/2 uses outbound TCP 443 a
 - [Cloudflare Access and MFA](docs/cloudflare-access.md)
 - [Bitwarden CLI secrets](docs/bitwarden-cli-secrets.md)
 - [Backup operations](docs/backups.md)
+- [Offsite R2 backup setup](docs/offsite-r2.md)
 - [Recovery and security](docs/recovery.md)
