@@ -19,11 +19,12 @@ esac
 
 # Archives removed locally by retention are moved into previous/ on the remote
 # instead of being deleted by the mirror sync; the exclude keeps sync from
-# touching that subtree. Never add --delete-excluded here.
+# touching that subtree. Never add --delete-excluded here. crypt exposes no
+# common hash, so comparison is by size only.
 rclone sync "$DATA_DIR" "$RCLONE_REMOTE" \
     --config "$config" \
     --transfers 4 \
-    --checksum \
+    --size-only \
     --backup-dir "$RCLONE_REMOTE/previous" \
     --exclude "/previous/**"
 log "Synchronization completed"
