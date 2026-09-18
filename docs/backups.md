@@ -25,3 +25,14 @@ ls -lh backups
 docker compose ps
 docker compose logs -f backup-watch backup-scheduled backup-sync
 ```
+
+### Manual backup
+
+To capture the current state on demand, run the local archive command and then the sync command (or let the next scheduled sync, at most ten minutes away, pick the archive up):
+
+```sh
+./bin/vaultwarden-compose exec backup-watch sh /scripts/backup-local.sh watch
+./bin/vaultwarden-compose exec backup-sync sh /scripts/backup-sync.sh
+```
+
+`rclone sync` is incremental: it compares names and sizes and uploads only the new archive, never the whole directory. A manual `watch` archive joins the normal retention (rolling 15 locally, then 30 days in the remote `previous/`) and requires Vaultwarden to be running, like every backup.
