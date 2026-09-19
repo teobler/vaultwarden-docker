@@ -75,3 +75,4 @@ The tunnel connector uses HTTP/2 instead of QUIC. HTTP/2 uses outbound TCP 443 a
 - [Backup operations](docs/backups.md)
 - [Offsite R2 backup setup](docs/offsite-r2.md)
 - [Recovery and security](docs/recovery.md)
+- [Clash fake-ip setup](docs/clash-fake-ip.md)
